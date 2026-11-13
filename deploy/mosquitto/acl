@@ -1,0 +1,13 @@
+# Device account: publish its own topics, never subscribe.
+user flood-device
+topic write floodmonitor/telemetry
+topic write floodmonitor/debug
+topic write floodmonitor/status
+topic write iot/flood/#
+
+# Ingest/dashboard account: read only.
+user flood-reader
+topic read floodmonitor/telemetry
+topic read floodmonitor/debug
+topic read floodmonitor/status
+topic read iot/flood/#

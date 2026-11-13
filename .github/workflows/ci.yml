@@ -1,0 +1,56 @@
+name: Firmware CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  firmware:
+    name: Tests, build, and static analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            platformio-${{ runner.os }}-
+
+      - name: Install PlatformIO
+        run: python -m pip install "platformio>=6.1,<7"
+
+      - name: Unit tests
+        run: pio test --environment native
+
+      - name: Build firmware
+        run: pio run --environment esp32dev
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: flood-alert-firmware
+          path: .pio/build/esp32dev/firmware.bin
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Static analysis
+        run: pio check --environment esp32dev --fail-on-defect=low --skip-packages
